@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import VisualWindowSequenceManager from './VisualWindowSequenceManager';
-import GameScreenEmulator from './GameScreenEmulator';
-import PriorityVisualization from './PriorityVisualization';
-import WindowEditor from './WindowEditor';
-import { WindowProvider } from './WindowContext';
+import { WindowProvider } from './context/WindowContext';
+import VisualWindowSequenceManager from './components/VisualWindowSequenceManager';
+import GameScreenEmulator from './components/GameScreenEmulator';
+import PriorityVisualization from './components/PriorityVisualization';
+import WindowEditor from './components/WindowEditor';
+import './App.css';
 
 function App() {
   const [activeComponent, setActiveComponent] = useState('manager');
