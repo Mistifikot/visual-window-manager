@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useWindows } from '../context/WindowContext';
 import { WindowTypes, PriorityLevels } from '../constants/windowTypes';
-import { getTypeColor, getPriorityColor } from '../utils/colorUtils';
 
 const PriorityVisualization = () => {
   const { windows } = useWindows();

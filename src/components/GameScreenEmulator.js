@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWindows } from '../context/WindowContext';
-import { WindowTypes, PriorityLevels } from '../constants/windowTypes';
-import { getTypeColor, getPriorityColor } from '../utils/colorUtils';
+import { PriorityLevels } from '../constants/windowTypes';
+import { getTypeColor } from '../utils/colorUtils';
 
 const GameScreenEmulator = () => {
   const { windows } = useWindows();
