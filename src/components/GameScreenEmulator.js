@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWindows } from '../context/WindowContext';
 import { PriorityLevels } from '../constants/windowTypes';
 import { getTypeColor } from '../utils/colorUtils';
@@ -6,6 +6,58 @@ import { getTypeColor } from '../utils/colorUtils';
 const GameScreenEmulator = () => {
   const { windows } = useWindows();
   const [activeWindows, setActiveWindows] = useState([]);
+  const [gameStage, setGameStage] = useState('gameStart'); // gameStart, levelExit1, levelExit2, levelExit3
+
+  // Фильтры для разных этапов игры
+  const getWindowsForStage = (stage) => {
+    const mainScreenWindows = windows.filter(w => parseInt(w.id) <= 50);
+    const levelExitWindows = windows.filter(w => parseInt(w.id) > 50);
+
+    switch(stage) {
+      case 'gameStart':
+        // Окна при входе в игру (обычно высокоприоритетные системные и наградные)
+        return mainScreenWindows.filter(w => 
+          w.priority === PriorityLevels.HIGH && 
+          parseInt(w.id) <= 10 // Демонстрационное ограничение: только первые 10 окон для примера
+        ).slice(0, 3); // Показываем только 3 первых окна
+        
+      case 'levelExit1':
+        // Первый выход из уровня: показываем окна завершения уровня и некоторые события
+        return [
+          // Основные окна выхода из уровня
+          ...levelExitWindows.filter(w => w.priority === PriorityLevels.HIGH).slice(0, 2),
+          // Некоторые обучающие окна
+          ...mainScreenWindows.filter(w => w.priority === PriorityLevels.MEDIUM && w.id === '6')
+        ];
+        
+      case 'levelExit2':
+        // Второй выход из уровня: показываем прогресс и события
+        return [
+          // Прогресс-окна
+          ...mainScreenWindows.filter(w => w.id === '15' || w.id === '19'), 
+          // Окна предложений
+          ...mainScreenWindows.filter(w => w.id === '21' || w.id === '31').slice(0, 1)
+        ];
+        
+      case 'levelExit3':
+        // Третий выход из уровня: показываем награды и события
+        return [
+          // Наградные окна
+          ...mainScreenWindows.filter(w => w.id === '14' || w.id === '16' || w.id === '17'),
+          // Событийные окна
+          ...mainScreenWindows.filter(w => w.id === '22' || w.id === '27').slice(0, 1)
+        ];
+        
+      default:
+        return [];
+    }
+  };
+
+  // Обновляем активные окна при смене этапа игры
+  useEffect(() => {
+    const stageWindows = getWindowsForStage(gameStage);
+    setActiveWindows(stageWindows);
+  }, [gameStage, windows]);
 
   const addWindow = (window) => {
     if (!activeWindows.find(w => w.id === window.id)) {
@@ -16,6 +68,50 @@ const GameScreenEmulator = () => {
   const removeWindow = (windowId) => {
     setActiveWindows(prev => prev.filter(w => w.id !== windowId));
   };
+
+  const renderGameStageButtons = () => (
+    <div style={stageButtonsContainerStyle}>
+      <h3>Сценарии игры</h3>
+      <div style={stageButtonsGridStyle}>
+        <button 
+          style={{
+            ...stageButtonStyle,
+            backgroundColor: gameStage === 'gameStart' ? '#3f51b5' : '#6573c3',
+          }} 
+          onClick={() => setGameStage('gameStart')}
+        >
+          Вход в игру
+        </button>
+        <button 
+          style={{
+            ...stageButtonStyle,
+            backgroundColor: gameStage === 'levelExit1' ? '#3f51b5' : '#6573c3',
+          }} 
+          onClick={() => setGameStage('levelExit1')}
+        >
+          Первый выход из уровня
+        </button>
+        <button 
+          style={{
+            ...stageButtonStyle,
+            backgroundColor: gameStage === 'levelExit2' ? '#3f51b5' : '#6573c3',
+          }} 
+          onClick={() => setGameStage('levelExit2')}
+        >
+          Второй выход из уровня
+        </button>
+        <button 
+          style={{
+            ...stageButtonStyle,
+            backgroundColor: gameStage === 'levelExit3' ? '#3f51b5' : '#6573c3',
+          }} 
+          onClick={() => setGameStage('levelExit3')}
+        >
+          Третий выход из уровня
+        </button>
+      </div>
+    </div>
+  );
 
   const renderGameScreen = () => (
     <div style={gameScreenStyle}>
@@ -31,18 +127,22 @@ const GameScreenEmulator = () => {
             {activeWindows.map(window => (
               <div key={window.id} style={modalWindowStyle(window)}>
                 <div style={modalHeaderStyle(window.type)}>
-                  <span>{window.content}</span>
+                  <span>{window.content} (#{window.id})</span>
                   <button style={modalCloseStyle} onClick={() => removeWindow(window.id)}>×</button>
                 </div>
                 <div style={modalBodyStyle}>
                   <p>{window.description}</p>
+                  <div style={modalTagsStyle}>
+                    <span style={modalTagStyle(getTypeColor(window.type))}>{window.type}</span>
+                    <span style={priorityTagStyle(window.priority)}>{window.priority}</span>
+                  </div>
                   <button style={modalButtonStyle}>OK</button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div style={emptyBoardStyle}>Game Board</div>
+          <div style={emptyBoardStyle}>Нет активных окон</div>
         )}
       </div>
 
@@ -58,16 +158,16 @@ const GameScreenEmulator = () => {
 
   const renderWindowsList = () => (
     <div style={windowsListStyle}>
-      <h3>Available Windows</h3>
+      <h3>Добавить окна вручную</h3>
       <div style={windowsGridStyle}>
         {windows.map(window => (
           <div key={window.id} style={windowItemStyle(window.type)}>
             <div style={windowItemHeaderStyle}>
-              <span>{window.content}</span>
+              <span>{window.content} <small>#{window.id}</small></span>
               <button style={addButtonStyle} onClick={() => addWindow(window)}>+</button>
             </div>
             <div style={windowItemBodyStyle}>
-              <small>{window.type}</small>
+              <small>{window.type} • {window.priority}</small>
             </div>
           </div>
         ))}
@@ -77,6 +177,7 @@ const GameScreenEmulator = () => {
 
   return (
     <div style={containerStyle}>
+      {renderGameStageButtons()}
       {renderGameScreen()}
       {renderWindowsList()}
     </div>
@@ -88,6 +189,26 @@ const containerStyle = {
   display: 'flex',
   flexDirection: 'column',
   padding: '20px'
+};
+
+const stageButtonsContainerStyle = {
+  marginBottom: '20px'
+};
+
+const stageButtonsGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '10px'
+};
+
+const stageButtonStyle = {
+  color: 'white',
+  border: 'none',
+  padding: '12px 15px',
+  borderRadius: '5px',
+  cursor: 'pointer',
+  fontWeight: 'bold',
+  transition: 'background-color 0.2s ease'
 };
 
 const gameScreenStyle = {
@@ -182,6 +303,41 @@ const modalBodyStyle = {
   alignItems: 'center'
 };
 
+const modalTagsStyle = {
+  display: 'flex',
+  gap: '8px',
+  marginBottom: '12px'
+};
+
+const modalTagStyle = (color) => ({
+  display: 'inline-block',
+  backgroundColor: `${color}20`,
+  color: color,
+  padding: '3px 8px',
+  borderRadius: '4px',
+  fontSize: '12px',
+  fontWeight: 'bold'
+});
+
+const priorityTagStyle = (priority) => {
+  let color;
+  switch(priority) {
+    case PriorityLevels.HIGH: color = '#f44336'; break;
+    case PriorityLevels.MEDIUM: color = '#ff9800'; break;
+    case PriorityLevels.LOW: color = '#4caf50'; break;
+    default: color = '#777';
+  }
+  return {
+    display: 'inline-block',
+    backgroundColor: `${color}20`,
+    color: color,
+    padding: '3px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 'bold'
+  };
+};
+
 const modalButtonStyle = {
   backgroundColor: '#4CAF50',
   color: 'white',
@@ -221,13 +377,19 @@ const windowsListStyle = {
 const windowsGridStyle = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-  gap: '15px'
+  gap: '15px',
+  maxHeight: '400px',
+  overflowY: 'auto',
+  padding: '10px',
+  backgroundColor: '#f9f9f9',
+  borderRadius: '8px'
 };
 
 const windowItemStyle = (type) => ({
   border: `1px solid ${getTypeColor(type)}`,
   borderRadius: '4px',
-  overflow: 'hidden'
+  overflow: 'hidden',
+  backgroundColor: 'white'
 });
 
 const windowItemHeaderStyle = {
