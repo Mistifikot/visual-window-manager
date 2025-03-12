@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWindows } from '../context/WindowContext';
 import { PriorityLevels } from '../constants/windowTypes';
 import { getTypeColor } from '../utils/colorUtils';
@@ -8,8 +8,8 @@ const GameScreenEmulator = () => {
   const [activeWindows, setActiveWindows] = useState([]);
   const [gameStage, setGameStage] = useState('gameStart'); // gameStart, levelExit1, levelExit2, levelExit3
 
-  // Фильтры для разных этапов игры
-  const getWindowsForStage = (stage) => {
+  // Фильтры для разных этапов игры - обернул в useCallback для решения проблемы ESLint
+  const getWindowsForStage = useCallback((stage) => {
     const mainScreenWindows = windows.filter(w => parseInt(w.id) <= 50);
     const levelExitWindows = windows.filter(w => parseInt(w.id) > 50);
 
@@ -51,13 +51,13 @@ const GameScreenEmulator = () => {
       default:
         return [];
     }
-  };
+  }, [windows]); // добавляем windows как зависимость
 
   // Обновляем активные окна при смене этапа игры
   useEffect(() => {
     const stageWindows = getWindowsForStage(gameStage);
     setActiveWindows(stageWindows);
-  }, [gameStage, windows]);
+  }, [gameStage, getWindowsForStage]); // Добавляем getWindowsForStage в зависимости
 
   const addWindow = (window) => {
     if (!activeWindows.find(w => w.id === window.id)) {
